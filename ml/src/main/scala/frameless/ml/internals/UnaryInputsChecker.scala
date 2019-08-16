@@ -19,7 +19,7 @@ trait UnaryInputsChecker[Inputs, Expected] {
 
 object UnaryInputsChecker {
 
-  implicit def checkUnaryInputs[Inputs, Expected, InputsRec <: HList, InputK <: Symbol](
+  implicit def checkUnaryInputs[Inputs, Expected, InputsRec <: HList, InputK <: String](
     implicit
     i0: LabelledGeneric.Aux[Inputs, InputsRec],
     i1: Length.Aux[InputsRec, Nat._1],

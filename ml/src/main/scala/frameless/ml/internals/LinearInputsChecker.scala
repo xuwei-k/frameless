@@ -27,8 +27,8 @@ object LinearInputsChecker {
   implicit def checkLinearInputs[
   Inputs,
   InputsRec <: HList,
-  LabelK <: Symbol,
-  FeaturesK <: Symbol](
+  LabelK <: String,
+  FeaturesK <: String](
     implicit
     i0: LabelledGeneric.Aux[Inputs, InputsRec],
     i1: Length.Aux[InputsRec, Nat._2],
@@ -47,9 +47,9 @@ object LinearInputsChecker {
   implicit def checkLinearInputs2[
   Inputs,
   InputsRec <: HList,
-  LabelK <: Symbol,
-  FeaturesK <: Symbol,
-  WeightK <: Symbol](
+  LabelK <: String,
+  FeaturesK <: String,
+  WeightK <: String](
     implicit
     i0: LabelledGeneric.Aux[Inputs, InputsRec],
     i1: Length.Aux[InputsRec, Nat._3],

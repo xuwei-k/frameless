@@ -26,8 +26,8 @@ object TreesInputsChecker {
   implicit def checkTreesInputs[
   Inputs,
   InputsRec <: HList,
-  LabelK <: Symbol,
-  FeaturesK <: Symbol](
+  LabelK <: String,
+  FeaturesK <: String](
     implicit
     i0: LabelledGeneric.Aux[Inputs, InputsRec],
     i1: Length.Aux[InputsRec, Nat._2],

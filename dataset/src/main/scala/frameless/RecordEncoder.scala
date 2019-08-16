@@ -23,22 +23,22 @@ trait RecordEncoderFields[T <: HList] extends Serializable {
 
 object RecordEncoderFields {
 
-  implicit def deriveRecordLast[K <: Symbol, H]
+  implicit def deriveRecordLast[K <: String, H]
     (implicit
       key: Witness.Aux[K],
       head: TypedEncoder[H]
     ): RecordEncoderFields[FieldType[K, H] :: HNil] = new RecordEncoderFields[FieldType[K, H] :: HNil] {
-      def value: List[RecordEncoderField] = RecordEncoderField(0, key.value.name, head) :: Nil
+      def value: List[RecordEncoderField] = RecordEncoderField(0, key.value, head) :: Nil
     }
 
-  implicit def deriveRecordCons[K <: Symbol, H, T <: HList]
+  implicit def deriveRecordCons[K <: String, H, T <: HList]
     (implicit
       key: Witness.Aux[K],
       head: TypedEncoder[H],
       tail: RecordEncoderFields[T]
     ): RecordEncoderFields[FieldType[K, H] :: T] = new RecordEncoderFields[FieldType[K, H] :: T] {
       def value: List[RecordEncoderField] = {
-        val fieldName = key.value.name
+        val fieldName = key.value
         val fieldEncoder = RecordEncoderField(0, fieldName, head)
 
         fieldEncoder :: tail.value.map(x => x.copy(ordinal = x.ordinal + 1))
@@ -62,7 +62,7 @@ object NewInstanceExprs {
     def from(exprs: List[Expression]): Seq[Expression] = Nil
   }
 
-  implicit def deriveUnit[K <: Symbol, T <: HList]
+  implicit def deriveUnit[K <: String, T <: HList]
     (implicit
       tail: NewInstanceExprs[T]
     ): NewInstanceExprs[FieldType[K, Unit] :: T] = new NewInstanceExprs[FieldType[K, Unit] :: T] {
@@ -70,7 +70,7 @@ object NewInstanceExprs {
         Literal.fromObject(()) +: tail.from(exprs)
     }
 
-  implicit def deriveNonUnit[K <: Symbol, V , T <: HList]
+  implicit def deriveNonUnit[K <: String, V , T <: HList]
     (implicit
       notUnit: V =:!= Unit,
       tail: NewInstanceExprs[T]
@@ -96,7 +96,7 @@ object DropUnitValues {
     def apply(l: HNil): Out = HNil
   }
 
-  implicit def deriveUnit[K <: Symbol, T <: HList, OutT <: HList]
+  implicit def deriveUnit[K <: String, T <: HList, OutT <: HList]
     (implicit
       dropUnitValues : DropUnitValues.Aux[T, OutT]
     ): Aux[FieldType[K, Unit] :: T, OutT] = new DropUnitValues[FieldType[K, Unit] :: T] {
@@ -104,7 +104,7 @@ object DropUnitValues {
       def apply(l : FieldType[K, Unit] :: T): Out = dropUnitValues(l.tail)
     }
 
-  implicit def deriveNonUnit[K <: Symbol, V, T <: HList, OutH, OutT <: HList]
+  implicit def deriveNonUnit[K <: String, V, T <: HList, OutH, OutT <: HList]
     (implicit
       nonUnit: V =:!= Unit,
       dropUnitValues : DropUnitValues.Aux[T, OutT]

@@ -217,7 +217,7 @@ class TypedDataset[T] protected[frameless](val dataset: Dataset[T])(implicit val
     *
     * It is statically checked that column with such name exists and has type `A`.
     */
-  def apply[A](column: Witness.Lt[Symbol])
+  def apply[A](column: Witness.Lt[String])
     (implicit
       i0: TypedColumn.Exists[T, column.T, A],
       i1: TypedEncoder[A]
@@ -231,12 +231,12 @@ class TypedDataset[T] protected[frameless](val dataset: Dataset[T])(implicit val
     *
     * It is statically checked that column with such name exists and has type `A`.
     */
-  def col[A](column: Witness.Lt[Symbol])
+  def col[A](column: Witness.Lt[String])
     (implicit
       i0: TypedColumn.Exists[T, column.T, A],
       i1: TypedEncoder[A]
     ): TypedColumn[T, A] =
-      new TypedColumn[T, A](dataset(column.value.name).as[A](TypedExpressionEncoder[A]))
+      new TypedColumn[T, A](dataset(column.value).as[A](TypedExpressionEncoder[A]))
 
   /** Projects the entire TypedDataset[T] into a single column of type TypedColumn[T,T]
     * {{{
@@ -255,9 +255,9 @@ class TypedDataset[T] protected[frameless](val dataset: Dataset[T])(implicit val
       (implicit
         i0: TypedColumn.ExistsMany[T, U, Out],
         i1: TypedEncoder[Out],
-        i2: ToTraversable.Aux[U, List, Symbol]
+        i2: ToTraversable.Aux[U, List, String]
       ): TypedColumn[T, Out] = {
-        val names = columns.toList[Symbol].map(_.name)
+        val names = columns.toList[String]
         val colExpr = FramelessInternals.resolveExpr(dataset, names)
         new TypedColumn[T, Out](colExpr)
       }
@@ -269,7 +269,7 @@ class TypedDataset[T] protected[frameless](val dataset: Dataset[T])(implicit val
     * Note: In vanilla Spark, disambiguation in self-joins is acheaved using
     * String based aliases, which is obviously unsafe.
     */
-  def colRight[A](column: Witness.Lt[Symbol])
+  def colRight[A](column: Witness.Lt[String])
     (implicit
       i0: TypedColumn.Exists[T, column.T, A],
       i1: TypedEncoder[A]
@@ -282,7 +282,7 @@ class TypedDataset[T] protected[frameless](val dataset: Dataset[T])(implicit val
     * Note: In vanilla Spark, disambiguation in self-joins is acheaved using
     * String based aliases, which is obviously unsafe.
     */
-  def colLeft[A](column: Witness.Lt[Symbol])
+  def colLeft[A](column: Witness.Lt[String])
     (implicit
       i0: TypedColumn.Exists[T, column.T, A],
       i1: TypedEncoder[A]
@@ -992,7 +992,7 @@ class TypedDataset[T] protected[frameless](val dataset: Dataset[T])(implicit val
     *   val d: TypedDataset[Foo(a: String, b: Int...)] = ???
     *   val result = TypedDataset[(Int, ...)] = d.drop('a)
     * }}}
-    * @param column column to drop specified as a Symbol
+    * @param column column to drop specified as a String
     * @param i0 LabelledGeneric derived for T
     * @param i1 Remover derived for TRep and column
     * @param i2 values of T with column removed
@@ -1006,7 +1006,7 @@ class TypedDataset[T] protected[frameless](val dataset: Dataset[T])(implicit val
     * @return
     */
   def dropTupled[Out, TRep <: HList, Removed <: HList, ValuesFromRemoved <: HList, V]
-    (column: Witness.Lt[Symbol])
+    (column: Witness.Lt[String])
     (implicit
       i0: LabelledGeneric.Aux[T, TRep],
       i1: Remover.Aux[TRep, column.T, (V, Removed)],
@@ -1016,7 +1016,7 @@ class TypedDataset[T] protected[frameless](val dataset: Dataset[T])(implicit val
     ): TypedDataset[Out] = {
       val dropped = dataset
         .toDF()
-        .drop(column.value.name)
+        .drop(column.value)
         .as[Out](TypedExpressionEncoder[Out])
 
       TypedDataset.create[Out](dropped)
@@ -1073,12 +1073,12 @@ class TypedDataset[T] protected[frameless](val dataset: Dataset[T])(implicit val
     * @param i0 Evidence that a column with the correct type and name exists
     */
   def withColumnReplaced[A](
-    column: Witness.Lt[Symbol],
+    column: Witness.Lt[String],
     replacement: TypedColumn[T, A]
   )(implicit
     i0: TypedColumn.Exists[T, column.T, A]
   ): TypedDataset[T] = {
-    val updated = dataset.toDF().withColumn(column.value.name, replacement.untyped)
+    val updated = dataset.toDF().withColumn(column.value, replacement.untyped)
       .as[T](TypedExpressionEncoder[T])
 
     TypedDataset.create[T](updated)
@@ -1120,7 +1120,7 @@ class TypedDataset[T] protected[frameless](val dataset: Dataset[T])(implicit val
   def withColumn[U] = new WithColumnApply[U]
 
   class WithColumnApply[U] {
-    def apply[A, TRep <: HList, URep <: HList, UKeys <: HList, NewFields <: HList, NewKeys <: HList, NewKey <: Symbol]
+    def apply[A, TRep <: HList, URep <: HList, UKeys <: HList, NewFields <: HList, NewKeys <: HList, NewKey <: String]
     (ca: TypedColumn[T, A])
     (implicit
       i0: TypedEncoder[U],
@@ -1133,16 +1133,16 @@ class TypedDataset[T] protected[frameless](val dataset: Dataset[T])(implicit val
       i7: IsHCons.Aux[NewKeys, NewKey, HNil],
       i8: IsHCons.Aux[NewFields, FieldType[NewKey, A], HNil],
       i9: Keys.Aux[URep, UKeys],
-      iA: ToTraversable.Aux[UKeys, Seq, Symbol]
+      iA: ToTraversable.Aux[UKeys, Seq, String]
     ): TypedDataset[U] = {
       val newColumnName =
-        i7.head(i6()).name
+        i7.head(i6())
 
       val dfWithNewColumn = dataset
         .toDF()
         .withColumn(newColumnName, ca.untyped)
 
-      val newColumns = i9.apply.to[Seq].map(_.name).map(dfWithNewColumn.col)
+      val newColumns = i9.apply.to[Seq].map(dfWithNewColumn.col)
 
       val selected = dfWithNewColumn
         .select(newColumns: _*)
@@ -1167,7 +1167,7 @@ class TypedDataset[T] protected[frameless](val dataset: Dataset[T])(implicit val
     * @param column the column we wish to explode
     */
   def explode[A, TRep <: HList, V[_], OutMod <: HList, OutModValues <: HList, Out]
-  (column: Witness.Lt[Symbol])
+  (column: Witness.Lt[String])
   (implicit
    i0: TypedColumn.Exists[T, column.T, V[A]],
    i1: TypedEncoder[A],
@@ -1182,8 +1182,8 @@ class TypedDataset[T] protected[frameless](val dataset: Dataset[T])(implicit val
     import org.apache.spark.sql.functions.{explode => sparkExplode}
 
     val trans =
-      df.withColumn(column.value.name,
-        sparkExplode(df(column.value.name))).as[Out](TypedExpressionEncoder[Out])
+      df.withColumn(column.value,
+        sparkExplode(df(column.value))).as[Out](TypedExpressionEncoder[Out])
     TypedDataset.create[Out](trans)
   }
 
@@ -1204,7 +1204,7 @@ class TypedDataset[T] protected[frameless](val dataset: Dataset[T])(implicit val
     * @param column the column we wish to flatten
     */
   def flattenOption[A, TRep <: HList, V[_], OutMod <: HList, OutModValues <: HList, Out]
-  (column: Witness.Lt[Symbol])
+  (column: Witness.Lt[String])
   (implicit
    i0: TypedColumn.Exists[T, column.T, V[A]],
    i1: TypedEncoder[A],
@@ -1217,7 +1217,7 @@ class TypedDataset[T] protected[frameless](val dataset: Dataset[T])(implicit val
   ): TypedDataset[Out] = {
     val df = dataset.toDF()
     val trans = 
-      df.filter(df(column.value.name).isNotNull).as[Out](TypedExpressionEncoder[Out])
+      df.filter(df(column.value).isNotNull).as[Out](TypedExpressionEncoder[Out])
     TypedDataset.create[Out](trans)
   }
 }
